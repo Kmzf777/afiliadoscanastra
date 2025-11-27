@@ -85,7 +85,7 @@ export async function GET() {
         }
     }
 
-    const uniqueCpfs = [...new Set(Object.values(codeToCpf))]
+    const uniqueCpfs = Array.from(new Set(Object.values(codeToCpf)))
     console.log(`API Ranking: Found ${uniqueCpfs.length} unique CPFs.`)
 
     // 4. Fetch user details (name)
