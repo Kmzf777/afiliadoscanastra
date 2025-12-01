@@ -221,12 +221,12 @@ export const WaitlistHero = () => {
               style={{
                 width: "2000px",
                 height: "2000px",
-                transform: "translate(-50%, -50%) rotate(279.05deg)",
+                transform: "translate(-50%, -50%) rotate(-180deg)",
                 zIndex: 0,
               }}
             >
               <img
-                src="https://framerusercontent.com/images/oqZEqzDEgSLygmUDuZAYNh2XQ9U.png?scale-down-to=2048"
+                src="/background_2.png"
                 alt=""
                 className="w-full h-full object-cover opacity-50"
               />
@@ -248,7 +248,7 @@ export const WaitlistHero = () => {
               }}
             >
               <img
-                src="https://framerusercontent.com/images/Ans5PAxtJfg3CwxlrPMSshx2Pqc.png"
+                src="/background_1.png"
                 alt="App Icon"
                 className="w-full h-full object-cover opacity-80"
               />

@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,6 +13,19 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Color tokens matching Home Page and Activate Page
+  const colors = {
+    textMain: "#ffffff",
+    textSecondary: "#94a3b8",
+    primary: "#f97316",
+    success: "#10b981",
+    inputBg: "#27272a",
+    baseBg: "#09090b",
+    inputShadow: "rgba(255, 255, 255, 0.1)",
+    cardBg: "#18181b",
+    cardBorder: "rgba(255, 255, 255, 0.1)"
+  }
 
   const formatCPF = (value: string) => {
     const cleaned = value.replace(/\D/g, '')
@@ -73,21 +87,134 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white flex items-center justify-center px-4">
-      <div className="w-full max-w-md mx-auto">
-        <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-8">
+    <div className="w-full min-h-screen bg-black flex items-center justify-center overflow-hidden relative">
+      {/* Animation Styles */}
+      <style>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 60s linear infinite;
+        }
+        @keyframes spin-slow-reverse {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(-360deg); }
+        }
+        .animate-spin-slow-reverse {
+          animation: spin-slow-reverse 60s linear infinite;
+        }
+        @keyframes bounce-in {
+          0% { transform: scale(0.8); opacity: 0; }
+          50% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-bounce-in {
+          animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-out forwards;
+        }
+      `}</style>
+
+      {/* Main Background Container */}
+      <div
+        className="absolute inset-0 w-full h-full"
+        style={{
+          backgroundColor: colors.baseBg,
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        }}
+      >
+        {/* Background Decorative Layer */}
+        <div
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{
+            perspective: "1200px",
+            transform: "perspective(1200px) rotateX(15deg)",
+            transformOrigin: "center bottom",
+            opacity: 1,
+          }}
+        >
+          {/* Image Back - spins clockwise */}
+          <div className="absolute inset-0 animate-spin-slow">
+            <div
+              className="absolute top-1/2 left-1/2"
+              style={{
+                width: "2000px",
+                height: "2000px",
+                transform: "translate(-50%, -50%) rotate(-180deg)",
+                zIndex: 0,
+              }}
+            >
+              <img
+                src="/background_2.png"
+                alt=""
+                className="w-full h-full object-cover opacity-50"
+              />
+            </div>
+          </div>
+
+          {/* Image Front - spins clockwise */}
+          <div className="absolute inset-0 animate-spin-slow">
+            <div
+              className="absolute top-1/2 left-1/2"
+              style={{
+                width: "800px",
+                height: "800px",
+                transform: "translate(-50%, -50%) rotate(48.33deg)",
+                zIndex: 2,
+              }}
+            >
+              <img
+                src="/background_1.png"
+                alt="App Icon"
+                className="w-full h-full object-cover opacity-80"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Gradient Overlay */}
+        <div
+          className="absolute inset-0 z-10 pointer-events-none"
+          style={{
+            background: `linear-gradient(to top, ${colors.baseBg} 10%, rgba(9, 9, 11, 0.8) 40%, transparent 100%)`,
+          }}
+        />
+      </div>
+
+      {/* Content Container */}
+      <div className="relative z-20 w-full max-w-md px-4 animate-bounce-in">
+        <div className="mb-6 text-center">
+           <Link href="/" className="inline-flex items-center text-sm text-gray-400 hover:text-white transition-colors mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar para Home
+           </Link>
+        </div>
+
+        <div 
+          className="backdrop-blur-md rounded-2xl shadow-2xl p-8 border"
+          style={{
+            backgroundColor: "rgba(24, 24, 27, 0.8)", // Dark card background with some transparency
+            borderColor: colors.cardBorder
+          }}
+        >
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold mb-2" style={{ color: colors.textMain }}>
               Entrar
             </h1>
-            <p className="text-gray-600">
+            <p style={{ color: colors.textSecondary }}>
               Acesse sua conta de afiliado
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="cpf" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="cpf" className="block text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>
                 CPF
               </label>
               <input
@@ -96,13 +223,19 @@ export default function LoginPage() {
                 value={cpf}
                 onChange={handleCpfChange}
                 placeholder="000.000.000-00"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:outline-none transition-colors text-black"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none transition-all focus:ring-2 focus:ring-primary-500/50 border"
+                style={{
+                  backgroundColor: colors.inputBg,
+                  color: colors.textMain,
+                  borderColor: colors.inputShadow,
+                  outlineColor: colors.primary
+                }}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>
                 Senha
               </label>
               <div className="relative">
@@ -112,13 +245,19 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-amber-500 focus:outline-none transition-colors pr-12 text-black"
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none transition-all focus:ring-2 focus:ring-primary-500/50 border pr-12"
+                  style={{
+                    backgroundColor: colors.inputBg,
+                    color: colors.textMain,
+                    borderColor: colors.inputShadow,
+                    outlineColor: colors.primary
+                  }}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -126,15 +265,19 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800 text-sm">{error}</p>
+              <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4">
+                <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={isLoading || !cpf || !password}
-              className="w-full inline-flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition-all"
+              className="w-full inline-flex items-center justify-center gap-2 font-semibold px-6 py-3 rounded-full shadow-lg transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: colors.primary,
+                color: colors.textMain
+              }}
             >
               {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -145,6 +288,6 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
-    </main>
+    </div>
   )
 }
