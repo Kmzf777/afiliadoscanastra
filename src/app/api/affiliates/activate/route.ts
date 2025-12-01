@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
           id: authData.user.id,
           email: finalEmail,
           cpf: cpf.replace(/\D/g, ''),
+          affiliate_code: code,
           created_at: new Date().toISOString()
         }, {
           onConflict: 'id'
