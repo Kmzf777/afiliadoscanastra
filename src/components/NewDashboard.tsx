@@ -249,18 +249,12 @@ export default function NewDashboard({ user }: DashboardProps) {
                     <CardTitle className="text-sm text-muted-foreground">Vendas Confirmadas</CardTitle>
                     <div className="text-3xl font-bold">{sales.filter(s => s.payment_link_status === true).length}</div>
                 </CardHeader>
-                <CardContent>
-                    <p className="text-xs text-muted-foreground">Filtradas por payment_link_status=true</p>
-                </CardContent>
             </Card>
             <Card>
                 <CardHeader className="pb-2">
                     <CardTitle className="text-sm text-muted-foreground">Receita Estimada</CardTitle>
                     <div className="text-3xl font-bold">{formatCurrency(sales.filter(s => s.payment_link_status === true).length * 5)}</div>
                 </CardHeader>
-                <CardContent>
-                    <p className="text-xs text-muted-foreground">Cada venda equivale a R$ 5,00</p>
-                </CardContent>
             </Card>
             <Card>
                 <CardHeader className="pb-2">
@@ -271,9 +265,6 @@ export default function NewDashboard({ user }: DashboardProps) {
                           : '-'}
                     </div>
                 </CardHeader>
-                <CardContent>
-                    <p className="text-xs text-muted-foreground">Baseado em ordenação desc por created_at</p>
-                </CardContent>
             </Card>
         </section>
 
@@ -341,7 +332,7 @@ export default function NewDashboard({ user }: DashboardProps) {
                                                 {new Date(sale.created_at).toLocaleDateString('pt-BR')} às {new Date(sale.created_at).toLocaleTimeString('pt-BR')}
                                             </span>
                                         </div>
-                                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200 gap-1">
+                                        <Badge variant="secondary" className="bg-green-600 text-white hover:bg-green-700 gap-1">
                                             <DollarSign className="h-3 w-3" /> + R$ 5,00
                                         </Badge>
                                     </div>

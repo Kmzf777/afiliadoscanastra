@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import rateLimit from '@/lib/rate-limit'
+
+const limiter = rateLimit({
+  interval: 60 * 1000, // 60 seconds
+  uniqueTokenPerInterval: 500,
+})
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || 'anonymous'
+    
+    try {
+      await limiter.check(10, ip) // 10 requests per minute allowed for validation
+    } catch {
+      return NextResponse.json(
+        { message: 'Muitas tentativas. Aguarde um momento.' },
+        { status: 429 }
+      )
+    }
+
     const { code } = await request.json()
 
     if (!code || !/^\d{6}$/.test(code)) {

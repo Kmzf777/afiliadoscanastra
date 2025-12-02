@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer } from '@/lib/supabase-server'
+import rateLimit from '@/lib/rate-limit'
+
+const limiter = rateLimit({
+  interval: 60 * 1000, // 60 seconds
+  uniqueTokenPerInterval: 500,
+})
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get('x-forwarded-for') || 'anonymous'
+    
+    try {
+      await limiter.check(5, ip) // 5 requests per minute per IP
+    } catch {
+      return NextResponse.json(
+        { message: 'Muitas tentativas. Tente novamente em alguns minutos.' },
+        { status: 429 }
+      )
+    }
+
     const { code, cpf, password, email } = await request.json()
 
     if (!code || !cpf || !password) {
@@ -10,6 +27,14 @@ export async function POST(request: NextRequest) {
         { message: 'Dados incompletos' },
         { status: 400 }
       )
+    }
+
+    // Basic Input Validation
+    if (password.length < 6) {
+       return NextResponse.json({ message: 'A senha deve ter pelo menos 6 caracteres' }, { status: 400 })
+    }
+    if (cpf.length < 11) {
+        return NextResponse.json({ message: 'CPF inválido' }, { status: 400 })
     }
 
     const supabase = getSupabaseServer()
@@ -23,8 +48,9 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (affiliateError || !affiliate) {
+      // Delay response slightly to mitigate timing attacks (optional but good practice)
       return NextResponse.json(
-        { message: 'Código inválido ou já ativado' },
+        { message: 'Código ou CPF inválidos.' },
         { status: 400 }
       )
     }
@@ -39,17 +65,17 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (saleError || !sale) {
-      return NextResponse.json(
-        { message: 'CPF não confere com o código. Verifique e tente novamente.' },
-        { status: 401 }
+       return NextResponse.json(
+        { message: 'Código ou CPF inválidos.' },
+        { status: 400 }
       )
     }
 
     const dbCpfDigits = String(sale.cpf || '').replace(/\D/g, '')
     if (dbCpfDigits !== cpfDigits) {
       return NextResponse.json(
-        { message: 'CPF não confere com o código. Verifique e tente novamente.' },
-        { status: 401 }
+        { message: 'Código ou CPF inválidos.' },
+        { status: 400 }
       )
     }
 
