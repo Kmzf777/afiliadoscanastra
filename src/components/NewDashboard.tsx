@@ -13,6 +13,8 @@ import { Copy, Download, TrendingUp, DollarSign, User, Clock, Trophy } from 'luc
 import QRCode from 'qrcode';
 import Image from 'next/image';
 
+import WithdrawalSystem from './WithdrawalSystem';
+
 // Helper for currency formatting
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -40,6 +42,17 @@ export default function NewDashboard({ user }: DashboardProps) {
   const [ranking, setRanking] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+
+  const getFirstName = (fullName: string) => {
+    if (!fullName) return '';
+    const parts = fullName.trim().split(' ');
+    if (parts.length > 0) {
+        // Capitalize first letter just in case
+        return parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+    }
+    return fullName;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,9 +63,10 @@ export default function NewDashboard({ user }: DashboardProps) {
         const salesRes = await fetch('/api/affiliates/sales');
         if (!salesRes.ok) throw new Error('Failed to fetch sales data');
         
-        const { sales: salesData, affiliateCode: code } = await salesRes.json();
+        const { sales: salesData, affiliateCode: code, userName: name } = await salesRes.json();
         
         setAffiliateCode(code);
+        setUserName(name);
         setSales(Array.isArray(salesData) ? [...salesData].sort((a: any, b: any) => {
             const da = a.created_at ? new Date(a.created_at).getTime() : 0
             const db = b.created_at ? new Date(b.created_at).getTime() : 0
@@ -204,10 +218,10 @@ export default function NewDashboard({ user }: DashboardProps) {
         </div>
         <div className="flex items-center gap-4">
             <div className="text-right hidden md:block">
-                <p className="text-sm font-medium">{user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email}</p>
+                <p className="text-sm font-medium">{userName || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email}</p>
                 <p className="text-xs text-muted-foreground">Código: {affiliateCode ?? user?.user_metadata?.affiliate_code ?? '-'}</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-primary">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-2 border-primary">
                 {/* Placeholder for user image */}
                 <User className="h-6 w-6 text-gray-500" />
             </div>
@@ -219,14 +233,14 @@ export default function NewDashboard({ user }: DashboardProps) {
         {/* Hero Section */}
         <section className="flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-r from-primary/10 to-transparent p-6 rounded-xl border">
             <div className="flex items-center gap-6">
-                <div className="h-24 w-24 md:h-32 md:w-32 rounded-full border-4 border-background shadow-xl overflow-hidden bg-white relative">
+                <div className="h-24 w-24 md:h-32 md:w-32 shrink-0 rounded-full border-4 border-background shadow-xl overflow-hidden bg-white relative">
                      {/* Profile Picture */}
                      <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
                         <User className="h-12 w-12 text-gray-400" />
                      </div>
                 </div>
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold">Olá, {user.user_metadata?.name || 'Afiliado'}!</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold">Olá, {userName ? getFirstName(userName) : (user.user_metadata?.name ? getFirstName(user.user_metadata.name) : 'Afiliado')}!</h1>
                     <p className="text-muted-foreground">Bem-vindo ao seu painel de controle.</p>
                 </div>
             </div>
@@ -295,6 +309,14 @@ export default function NewDashboard({ user }: DashboardProps) {
                     </Button>
                 </CardContent>
             </Card>
+        </section>
+
+        {/* Withdrawal System Section */}
+        <section className="space-y-6">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+                <DollarSign className="h-6 w-6 text-primary" /> Minha Carteira
+            </h2>
+            <WithdrawalSystem />
         </section>
 
         {/* Charts Section */}

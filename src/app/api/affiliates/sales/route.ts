@@ -31,39 +31,77 @@ export async function GET() {
     }
 
     // Fallback: Try to find code by CPF if stored in metadata or user table
-    if (!affiliateCode) {
+    let userName: string | null = null; // Start with null to force DB lookup if possible
+
+    // 2.1 Always try to find name by affiliateCode in vendas_amostra, as it is the source of truth
+        if (affiliateCode) {
+            const { data: saleByCode } = await supabaseAdmin
+                .from('vendas_amostra')
+                .select('nome, nome_completo')
+                .ilike('codigo_gerado', affiliateCode)
+                .limit(1)
+                .maybeSingle()
+            
+            if (saleByCode) {
+                // Prioritize name found in database linked to the code
+                userName = saleByCode.nome_completo || saleByCode.nome || null
+            }
+        }
+
+        // If still null, try metadata or fallback to email logic later
+        if (!userName) {
+             userName = user.user_metadata?.full_name || user.user_metadata?.name || null;
+        }
+
+    if (!affiliateCode || !userName) {
         const cpf = userData?.cpf || user.user_metadata?.cpf
         if (cpf) {
              const cleanCpf = String(cpf).replace(/\D/g, '')
              // Try exact match first
              const { data: saleData } = await supabaseAdmin
                 .from('vendas_amostra')
-                .select('codigo_gerado')
+                .select('codigo_gerado, nome, nome_completo')
                 .eq('cpf', cleanCpf)
                 .limit(1)
                 .maybeSingle()
              
-             if (saleData?.codigo_gerado) {
-                 affiliateCode = saleData.codigo_gerado
+             if (saleData) {
+                if (!affiliateCode && saleData.codigo_gerado) {
+                    affiliateCode = saleData.codigo_gerado
+                }
+                if (!userName) {
+                    userName = saleData.nome_completo || saleData.nome
+                }
              } else {
                  // Try formatted CPF match
                  const formattedCpf = cleanCpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
                  const { data: saleDataFormatted } = await supabaseAdmin
                     .from('vendas_amostra')
-                    .select('codigo_gerado')
+                    .select('codigo_gerado, nome, nome_completo')
                     .eq('cpf', formattedCpf)
                     .limit(1)
                     .maybeSingle()
 
-                 if (saleDataFormatted?.codigo_gerado) {
-                     affiliateCode = saleDataFormatted.codigo_gerado
+                 if (saleDataFormatted) {
+                    if (!affiliateCode && saleDataFormatted.codigo_gerado) {
+                        affiliateCode = saleDataFormatted.codigo_gerado
+                    }
+                    if (!userName) {
+                        userName = saleDataFormatted.nome_completo || saleDataFormatted.nome
+                    }
                  }
              }
         }
     }
 
+    if (!userName && user.email) {
+        const emailName = user.email.split('@')[0];
+        // Try to make it look like a name
+        userName = emailName.replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
     if (!affiliateCode) {
-      return NextResponse.json({ sales: [], affiliateCode: null })
+      return NextResponse.json({ sales: [], affiliateCode: null, userName })
     }
 
     // 3. Fetch Sales
@@ -90,7 +128,8 @@ export async function GET() {
 
     return NextResponse.json({
       sales: formattedSales,
-      affiliateCode
+      affiliateCode,
+      userName
     })
 
   } catch (error: any) {

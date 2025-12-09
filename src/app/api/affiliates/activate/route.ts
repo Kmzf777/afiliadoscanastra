@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     const cpfDigits = cpf.replace(/\D/g, '')
     const { data: sale, error: saleError } = await supabase
       .from('vendas_amostra')
-      .select('id, cpf, email, codigo_gerado, codigo_usado')
+      .select('id, cpf, email, codigo_gerado, codigo_usado, nome, nome_completo')
       .or(`codigo_gerado.eq.${code},codigo_usado.eq.${code}`)
       .limit(1)
       .maybeSingle()
@@ -93,13 +93,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar usuário no Supabase Auth
+    const fullName = sale.nome_completo || sale.nome || '';
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: finalEmail,
       password: password,
       email_confirm: true,
       user_metadata: {
         affiliate_code: code,
-        cpf: cpf.replace(/\D/g, '')
+        cpf: cpf.replace(/\D/g, ''),
+        full_name: fullName,
+        name: fullName // Store full name in name field as well to match Dashboard expectation
       }
     })
 
