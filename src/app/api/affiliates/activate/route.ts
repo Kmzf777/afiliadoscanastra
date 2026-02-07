@@ -10,7 +10,7 @@ const limiter = rateLimit({
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || 'anonymous'
-    
+
     try {
       await limiter.check(5, ip) // 5 requests per minute per IP
     } catch {
@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
 
     // Basic Input Validation
     if (password.length < 6) {
-       return NextResponse.json({ message: 'A senha deve ter pelo menos 6 caracteres' }, { status: 400 })
+      return NextResponse.json({ message: 'A senha deve ter pelo menos 6 caracteres' }, { status: 400 })
     }
     if (cpf.length < 11) {
-        return NextResponse.json({ message: 'CPF inválido' }, { status: 400 })
+      return NextResponse.json({ message: 'CPF inválido' }, { status: 400 })
     }
 
     const supabase = getSupabaseServer()
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         .select('id, payment_link_status, codigo_gerado, codigo_usado')
         .eq('codigo_gerado', code)
         .maybeSingle()
-      
+
       log('Sale check result:', saleCheck)
 
       // Verificação manual do status para garantir
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
           })
           .select('id, code, status')
           .single()
-        
+
         log('Affiliate creation result:', { newAffiliate, error: createError })
 
         if (!createError && newAffiliate) {
@@ -110,46 +110,49 @@ export async function POST(request: NextRequest) {
       .eq('codigo_gerado', code)
       .limit(1)
       .maybeSingle()
-    
+
     log('Sale ownership check:', { sale, error: saleError })
 
-    if (saleError || !sale) {
-       log('Erro ao buscar venda (ownership check):', saleError)
-       return NextResponse.json(
-        { message: 'Código ou CPF inválidos.', debug: debugLogs },
-        { status: 400 }
-      )
-    }
+    // Se houver uma venda associada, verificar propriedade do CPF
+    // Se não houver venda (código criado manualmente), pular verificação de propriedade
+    let saleEmail: string | null = null
+    let saleName: string | null = null
 
-    const dbCpfDigits = String(sale.cpf || '').replace(/\D/g, '')
-    log('CPF comparison:', { db: dbCpfDigits, input: cpfDigits })
+    if (sale) {
+      const dbCpfDigits = String(sale.cpf || '').replace(/\D/g, '')
+      log('CPF comparison:', { db: dbCpfDigits, input: cpfDigits })
 
-    if (dbCpfDigits !== cpfDigits) {
-      log('CPF mismatch')
-      return NextResponse.json(
-        { message: 'Código ou CPF inválidos.', debug: debugLogs },
-        { status: 400 }
-      )
+      if (dbCpfDigits !== cpfDigits) {
+        log('CPF mismatch')
+        return NextResponse.json(
+          { message: 'Código ou CPF inválidos.', debug: debugLogs },
+          { status: 400 }
+        )
+      }
+      saleEmail = sale.email
+      saleName = sale.nome_completo
+    } else {
+      log('No sale found for code. Assuming manually created affiliate code.')
     }
 
     // Buscar email do cliente se não foi fornecido
     let finalEmail = email
     if (!finalEmail) {
-      if (sale?.email) {
-        finalEmail = sale.email
+      if (saleEmail) {
+        finalEmail = saleEmail
       } else {
         log('Email not found in sale and not provided')
         return NextResponse.json(
-          { message: 'Email não encontrado para este CPF e código', debug: debugLogs },
+          { message: 'Email não encontrado. Por favor, forneça um email.', debug: debugLogs },
           { status: 400 }
         )
       }
     }
 
     // Criar usuário no Supabase Auth
-    const fullName = sale.nome_completo || '';
+    const fullName = saleName || '';
     log('Creating Auth user:', { email: finalEmail, fullName, cpf: cpfDigits })
-    
+
     let userId: string | undefined
 
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -172,18 +175,18 @@ export async function POST(request: NextRequest) {
     } else if (authError) {
       const msg = String(authError.message || '').toLowerCase()
       const alreadyExists = msg.includes('already') || msg.includes('registered') || msg.includes('exists')
-      
+
       if (alreadyExists) {
         log('User already exists. Attempting to retrieve ID via listUsers...')
         // Tentar recuperar o ID via listUsers (admin)
         const { data: listData, error: listError } = await supabase.auth.admin.listUsers()
-        
+
         if (listData?.users) {
           const existingUser = listData.users.find(u => u.email === finalEmail)
           if (existingUser) {
             userId = existingUser.id
             log('Found existing Auth User ID:', userId)
-            
+
             // Opcional: Atualizar metadata do usuário existente para o novo código?
             // Se ele está ativando um NOVO código, talvez devêssemos atualizar.
             const { error: updateAuthError } = await supabase.auth.admin.updateUserById(userId, {
@@ -197,7 +200,7 @@ export async function POST(request: NextRequest) {
             })
             if (updateAuthError) log('Error updating existing user metadata:', updateAuthError)
             else log('Updated existing user metadata with new code')
-            
+
           } else {
             log('User not found in first page of listUsers. Trying public.users fallback...')
           }
@@ -215,13 +218,13 @@ export async function POST(request: NextRequest) {
 
     // Fallback: Tentar recuperar da tabela users se ainda não tivermos o ID
     if (!userId) {
-        const { data: existingUser } = await supabase.from('users').select('id').eq('email', finalEmail).maybeSingle()
-        if (existingUser) {
-            userId = existingUser.id
-            log('Found existing user ID in public.users:', userId)
-        } else {
-            log('User ID could not be retrieved. Skipping public.users upsert.')
-        }
+      const { data: existingUser } = await supabase.from('users').select('id').eq('email', finalEmail).maybeSingle()
+      if (existingUser) {
+        userId = existingUser.id
+        log('Found existing user ID in public.users:', userId)
+      } else {
+        log('User ID could not be retrieved. Skipping public.users upsert.')
+      }
     }
 
     // Criar registro na tabela users para vincular CPF ao email
@@ -246,7 +249,7 @@ export async function POST(request: NextRequest) {
         // Não retornamos erro aqui pois o usuário do auth já foi criado/existe
       }
     } else {
-        log('Skipping public.users upsert because UserID is missing (likely already exists in Auth but not in public DB)')
+      log('Skipping public.users upsert because UserID is missing (likely already exists in Auth but not in public DB)')
     }
 
     // Ativar o afiliado

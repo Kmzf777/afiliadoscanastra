@@ -10,8 +10,9 @@ export default function AtivarPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const code = searchParams.get('code') || ''
-  
+
   const [cpf, setCpf] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -69,7 +70,7 @@ export default function AtivarPage() {
 
     try {
       console.log('Enviando dados de ativação:', { code, cpf: cpfLimpo })
-      
+
       const response = await fetch('/api/affiliates/activate', {
         method: 'POST',
         headers: {
@@ -79,6 +80,7 @@ export default function AtivarPage() {
           code,
           cpf: cpfLimpo,
           password,
+          email: email || undefined,
         }),
       })
 
@@ -216,13 +218,13 @@ export default function AtivarPage() {
       {/* Content Container */}
       <div className="relative z-20 w-full max-w-md px-4 animate-bounce-in">
         <div className="mb-6 text-center">
-           <Link href="/" className="inline-flex items-center text-sm text-gray-400 hover:text-white transition-colors mb-4">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar para Home
-           </Link>
+          <Link href="/" className="inline-flex items-center text-sm text-gray-400 hover:text-white transition-colors mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar para Home
+          </Link>
         </div>
 
-        <div 
+        <div
           className="backdrop-blur-md rounded-2xl shadow-2xl p-8 border"
           style={{
             backgroundColor: "rgba(24, 24, 27, 0.8)", // Dark card background with some transparency
@@ -249,6 +251,27 @@ export default function AtivarPage() {
                 value={cpf}
                 onChange={handleCpfChange}
                 placeholder="000.000.000-00"
+                className="w-full px-4 py-3 rounded-xl focus:outline-none transition-all focus:ring-2 focus:ring-primary-500/50 border"
+                style={{
+                  backgroundColor: colors.inputBg,
+                  color: colors.textMain,
+                  borderColor: colors.inputShadow,
+                  outlineColor: colors.primary
+                }}
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: colors.textSecondary }}>
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
                 className="w-full px-4 py-3 rounded-xl focus:outline-none transition-all focus:ring-2 focus:ring-primary-500/50 border"
                 style={{
                   backgroundColor: colors.inputBg,
@@ -328,7 +351,7 @@ export default function AtivarPage() {
 
             <button
               type="submit"
-              disabled={isLoading || !cpf || !password || !confirmPassword}
+              disabled={isLoading || !cpf || !email || !password || !confirmPassword}
               className="w-full inline-flex items-center justify-center gap-2 font-semibold px-6 py-3 rounded-full shadow-lg transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: colors.primary,
